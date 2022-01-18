@@ -8,10 +8,20 @@ import onmt.opts as opts
 from onmt.utils.parse import ArgumentParser
 from collections import defaultdict
 
+import os
 
 def translate(opt):
     ArgumentParser.validate_translate_opts(opt)
     logger = init_logger(opt.log_file)
+
+    #huggingface_hub integration
+    if opt.hf_repo_id:
+        try:
+            from huggingface_hub import snapshot_download
+            model_dir = snapshot_download(opt.hf_repo_id)
+            opt.models = [os.path.join(model_dir, opt.models[0])]
+        except:
+            print("Error while loading the Hugging Face model")
 
     translator = build_translator(opt, logger=logger, report_score=True)
     src_shards = split_corpus(opt.src, opt.shard_size)
@@ -49,7 +59,8 @@ def _get_parser():
 
 def main():
     parser = _get_parser()
-
+    parser.add_argument('-hf_repo_id')
+    
     opt = parser.parse_args()
     translate(opt)
 
